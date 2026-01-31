@@ -1,5 +1,6 @@
 package com.flow.assign.service;
 
+import com.flow.assign.controller.dto.response.CustomExtensionPageResponse;
 import com.flow.assign.controller.dto.response.FixedExtensionResponse;
 import com.flow.assign.controller.dto.response.CustomExtensionResponse;
 import com.flow.assign.controller.dto.response.FixedExtensionPolicyResponse;
@@ -12,6 +13,9 @@ import com.flow.assign.repository.CustomExtensionBlockRepository;
 import com.flow.assign.repository.FixedExtensionPolicyRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -131,6 +135,17 @@ public class ExtensionService {
             throw ExtensionNotFoundException.custom(normalized);
         }
         customExtensionBlockRepository.delete(existing.get());
+    }
+
+    @Transactional(readOnly = true)
+    public CustomExtensionPageResponse listCustomExtensionsPage(int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), CUSTOM_EXTENSION_MAX);
+
+        PageRequest pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "extension"));
+        Page<CustomExtensionBlock> result = customExtensionBlockRepository.findAllByExtensionNot(CUSTOM_LOCK_EXTENSION, pageable);
+
+        return CustomExtensionPageResponse.from(result);
     }
 
     private void lockCustomExtensionsTable(LocalDateTime now) {

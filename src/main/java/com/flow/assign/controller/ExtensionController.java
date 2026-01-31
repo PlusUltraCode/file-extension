@@ -5,6 +5,7 @@ import com.flow.assign.controller.dto.request.CustomUpdateRequest;
 import com.flow.assign.controller.dto.request.FixedCreateRequest;
 import com.flow.assign.controller.dto.request.FixedUpdateRequest;
 import com.flow.assign.controller.dto.response.CustomExtensionResponse;
+import com.flow.assign.controller.dto.response.CustomExtensionPageResponse;
 import com.flow.assign.controller.dto.response.FixedExtensionPolicyResponse;
 import com.flow.assign.controller.dto.response.FixedExtensionResponse;
 import com.flow.assign.service.ExtensionService;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -77,6 +79,14 @@ public class ExtensionController {
     @GetMapping("/custom")
     public ResponseEntity<List<CustomExtensionResponse>> customExtensionList() {
         return ResponseEntity.ok(extensionService.listCustomExtensions());
+    }
+
+    @GetMapping("/custom/page")
+    public ResponseEntity<CustomExtensionPageResponse> customExtensionPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(extensionService.listCustomExtensionsPage(page, size));
     }
 
     @PutMapping("/custom/{extension}")
