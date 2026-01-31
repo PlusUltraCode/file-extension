@@ -1,11 +1,9 @@
 spring:
-  application:
-    name: assign
-
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/assign?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    url: jdbc:mysql://localhost:3306/assign?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useUnicode=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: root
 
   jpa:
     hibernate:
