@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>파일 확장자 차단</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="page">
+    <header class="header">
+      <div class="titleRow">
+        <span class="bullet">◎</span>
+        <h1 class="title">파일 확장자 차단</h1>
+      </div>
+      <p class="subtitle">파일확장자에 따라 특정 형식의 파일을 첨부하거나 전송하지 못하도록 제한</p>
+    </header>
+
+    <section class="card">
+      <div class="row">
+        <div class="label">고정 확장자</div>
+        <div id="fixed-list" class="fixedList"></div>
+      </div>
+
+      <div class="row">
+        <div class="label">커스텀 확장자</div>
+        <div class="customControls">
+          <input id="custom-input" class="textInput" placeholder="확장자 입력" maxlength="20" />
+          <button id="custom-add" class="btn" type="button">+ 추가</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="label"></div>
+        <div class="customBox">
+          <div class="customMeta">
+            <span id="custom-count" class="count">0/200</span>
+            <span id="status" class="status"></span>
+          </div>
+          <div id="custom-chips" class="chips"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
