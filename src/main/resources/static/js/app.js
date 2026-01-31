@@ -10,7 +10,18 @@ const els = {
   customAdd: document.getElementById("custom-add"),
   customChips: document.getElementById("custom-chips"),
   customCount: document.getElementById("custom-count"),
+  customPrev: document.getElementById("custom-prev"),
+  customNext: document.getElementById("custom-next"),
+  customPage: document.getElementById("custom-page"),
+  customSize: document.getElementById("custom-size"),
   status: document.getElementById("status"),
+};
+
+const state = {
+  customPage: 0,
+  customSize: 10,
+  customTotalPages: 1,
+  customTotalElements: 0,
 };
 
 function normalizeExtension(raw) {
@@ -159,10 +170,26 @@ function renderFixed(policies) {
   }
 }
 
-function renderCustom(extensions) {
-  const list = [...extensions].sort((a, b) => a.localeCompare(b));
+function updateCustomPager() {
+  const totalPages = Math.max(state.customTotalPages || 1, 1);
+  const current = Math.min(state.customPage, totalPages - 1);
+  state.customPage = current;
 
-  els.customCount.textContent = `${list.length}/${CUSTOM_MAX}`;
+  els.customPage.textContent = `${current + 1}/${totalPages}`;
+  els.customPrev.disabled = current <= 0;
+  els.customNext.disabled = current >= totalPages - 1;
+}
+
+function renderCustom(pageResponse) {
+  const items = (pageResponse && Array.isArray(pageResponse.items)) ? pageResponse.items : [];
+  const list = items.map((x) => x.extension);
+
+  state.customTotalElements = Number(pageResponse?.totalElements ?? list.length);
+  state.customTotalPages = Number(pageResponse?.totalPages ?? 1);
+  state.customPage = Number(pageResponse?.page ?? 0);
+  state.customSize = Number(pageResponse?.size ?? state.customSize);
+
+  els.customCount.textContent = `${state.customTotalElements}/${CUSTOM_MAX}`;
   els.customChips.innerHTML = "";
 
   for (const ext of list) {
@@ -221,16 +248,26 @@ function renderCustom(extensions) {
     chip.appendChild(btn);
     els.customChips.appendChild(chip);
   }
+
+  updateCustomPager();
 }
 
 async function refreshAll() {
-  const [fixed, custom] = await Promise.all([
+  const [fixed, firstPage] = await Promise.all([
     api(`${API_BASE}/fixed`, { method: "GET" }),
-    api(`${API_BASE}/custom`, { method: "GET" }),
+    api(`${API_BASE}/custom/page?page=${state.customPage}&size=${state.customSize}`, { method: "GET" }),
   ]);
 
+  let customPage = firstPage;
+  const totalPages = Number(customPage?.totalPages ?? 1);
+  const pageNum = Number(customPage?.page ?? 0);
+  if (totalPages > 0 && pageNum > totalPages - 1) {
+    state.customPage = totalPages - 1;
+    customPage = await api(`${API_BASE}/custom/page?page=${state.customPage}&size=${state.customSize}`, { method: "GET" });
+  }
+
   renderFixed(Array.isArray(fixed) ? fixed : []);
-  renderCustom((Array.isArray(custom) ? custom : []).map((x) => x.extension));
+  renderCustom(customPage);
 }
 
 async function onAddCustom() {
@@ -251,6 +288,7 @@ async function onAddCustom() {
       body: JSON.stringify({ extension: ext }),
     });
     els.customInput.value = "";
+    // 새 항목이 정렬상 다른 페이지로 갈 수 있어 우선 현재 페이지 갱신
     await refreshAll();
     setStatus("추가 완료", "ok");
   } catch (e) {
@@ -296,6 +334,43 @@ function wireEvents() {
   els.customAdd.addEventListener("click", onAddCustom);
   els.customInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") onAddCustom();
+  });
+
+  els.customPrev.addEventListener("click", async () => {
+    if (state.customPage <= 0) return;
+    state.customPage -= 1;
+    setStatus("불러오는 중...", "muted");
+    try {
+      await refreshAll();
+      setStatus("", "muted");
+    } catch (e) {
+      setStatus(e.message || "데이터 로드 실패", "error");
+    }
+  });
+
+  els.customNext.addEventListener("click", async () => {
+    if (state.customPage >= (state.customTotalPages - 1)) return;
+    state.customPage += 1;
+    setStatus("불러오는 중...", "muted");
+    try {
+      await refreshAll();
+      setStatus("", "muted");
+    } catch (e) {
+      setStatus(e.message || "데이터 로드 실패", "error");
+    }
+  });
+
+  els.customSize.addEventListener("change", async () => {
+    const nextSize = Number(els.customSize.value || 10);
+    state.customSize = Number.isFinite(nextSize) ? nextSize : 10;
+    state.customPage = 0;
+    setStatus("불러오는 중...", "muted");
+    try {
+      await refreshAll();
+      setStatus("", "muted");
+    } catch (e) {
+      setStatus(e.message || "데이터 로드 실패", "error");
+    }
   });
 }
 
