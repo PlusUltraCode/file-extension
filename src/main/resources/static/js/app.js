@@ -89,7 +89,6 @@ function renderFixed(policies) {
 
   for (const ext of ordered) {
     const policy = byExt.get(ext);
-    // 요구사항: DB에 존재하면 체크 표시
     const checked = !!policy;
 
     const item = document.createElement("label");
@@ -104,24 +103,20 @@ function renderFixed(policies) {
 
       try {
         if (cb.checked) {
-          // 체크 = 생성(차단)
           try {
             await api(`${API_BASE}/fixed`, {
               method: "POST",
               body: JSON.stringify({ extension: ext }),
             });
           } catch (e) {
-            // 이미 존재하면(409) 무시하고 UI만 최신화
             if (!e || e.status !== 409) throw e;
           }
           await refreshAll();
           setStatus("저장 완료", "ok");
         } else {
-          // 해제 = 삭제
           try {
             await api(`${API_BASE}/fixed/${encodeURIComponent(ext)}`, { method: "DELETE" });
           } catch (e) {
-            // 이미 없으면(404) 무시
             if (!e || e.status !== 404) throw e;
           }
           await refreshAll();
@@ -219,7 +214,6 @@ function renderCustom(pageResponse) {
       }
     });
 
-    // Optional: rename on double click
     chip.addEventListener("dblclick", async () => {
       const nextRaw = prompt("새 확장자 입력", ext);
       if (nextRaw == null) return;
@@ -288,7 +282,6 @@ async function onAddCustom() {
       body: JSON.stringify({ extension: ext }),
     });
     els.customInput.value = "";
-    // 새 항목이 정렬상 다른 페이지로 갈 수 있어 우선 현재 페이지 갱신
     await refreshAll();
     setStatus("추가 완료", "ok");
   } catch (e) {

@@ -12,6 +12,6 @@ import lombok.NoArgsConstructor;
 @Builder
 public class FixedUpdateRequest {
 
-    @NotNull
+    @NotNull(message = "blocked 값은 필수입니다")
     private Boolean blocked;
 }

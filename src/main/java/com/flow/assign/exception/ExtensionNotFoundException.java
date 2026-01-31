@@ -7,10 +7,10 @@ public class ExtensionNotFoundException extends RuntimeException {
     }
 
     public static ExtensionNotFoundException fixed(String extension) {
-        return new ExtensionNotFoundException("Fixed extension not found: " + extension);
+        return new ExtensionNotFoundException("고정 확장자를 찾을 수 없습니다: " + extension);
     }
 
     public static ExtensionNotFoundException custom(String extension) {
-        return new ExtensionNotFoundException("Custom extension not found: " + extension);
+        return new ExtensionNotFoundException("커스텀 확장자를 찾을 수 없습니다: " + extension);
     }
 }

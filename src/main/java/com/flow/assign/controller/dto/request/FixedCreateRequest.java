@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class FixedCreateRequest {
 
-    @NotBlank
-    @Size(max = 20)
+    @NotBlank(message = "확장자를 입력해주세요")
+    @Size(max = 20, message = "확장자는 최대 20자까지 입력할 수 있습니다")
     private String extension;
 }

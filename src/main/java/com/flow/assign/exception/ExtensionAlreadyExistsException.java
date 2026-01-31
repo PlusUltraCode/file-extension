@@ -7,10 +7,10 @@ public class ExtensionAlreadyExistsException extends RuntimeException {
     }
 
     public static ExtensionAlreadyExistsException fixed(String extension) {
-        return new ExtensionAlreadyExistsException("Fixed extension already exists: " + extension);
+        return new ExtensionAlreadyExistsException("이미 등록된 고정 확장자입니다: " + extension);
     }
 
     public static ExtensionAlreadyExistsException custom(String extension) {
-        return new ExtensionAlreadyExistsException("Custom extension already exists: " + extension);
+        return new ExtensionAlreadyExistsException("이미 등록된 커스텀 확장자입니다: " + extension);
     }
 }
