@@ -154,22 +154,34 @@ public class ExtensionService {
 
     private String normalizeExtension(String extension) {
         if (extension == null) {
-            return "";
+            throw new IllegalArgumentException("extension must not be blank");
         }
+
         String trimmed = extension.trim();
+
+        int lastDot = trimmed.lastIndexOf('.');
+        if (lastDot >= 0) {
+            if (lastDot == trimmed.length() - 1) {
+                throw new IllegalArgumentException("extension must not be blank");
+            }
+            trimmed = trimmed.substring(lastDot + 1);
+        }
+
         if (trimmed.startsWith(".")) {
             trimmed = trimmed.substring(1);
         }
 
-        String normalized = trimmed.toLowerCase();
+        String normalized = trimmed.trim().toLowerCase();
         if (normalized.isBlank()) {
             throw new IllegalArgumentException("extension must not be blank");
+        }
+        if (normalized.contains(".")) {
+            throw new IllegalArgumentException("invalid extension");
         }
         if (CUSTOM_LOCK_EXTENSION.equals(normalized)) {
             throw new IllegalArgumentException("reserved extension");
         }
         return normalized;
     }
-
 
 }
