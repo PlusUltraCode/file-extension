@@ -48,20 +48,21 @@ class ExtensionServiceConcurrencyTest {
         int attempts = 250;
 
         ExecutorService pool = Executors.newFixedThreadPool(20);
-        CountDownLatch ready = new CountDownLatch(attempts);
         CountDownLatch start = new CountDownLatch(1);
+        CountDownLatch done = new CountDownLatch(attempts);
 
         List<Callable<Boolean>> tasks = new ArrayList<>();
         for (int i = 0; i < attempts; i++) {
             final String ext = String.format("ext%03d", i);
             tasks.add(() -> {
-                ready.countDown();
-                start.await(10, TimeUnit.SECONDS);
                 try {
+                    start.await(10, TimeUnit.SECONDS);
                     extensionService.createCustomExtension(ext);
                     return true;
                 } catch (CustomExtensionLimitExceededException e) {
                     return false;
+                } finally {
+                    done.countDown();
                 }
             });
         }
@@ -71,8 +72,9 @@ class ExtensionServiceConcurrencyTest {
             futures.add(pool.submit(task));
         }
 
-        assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
         start.countDown();
+
+        assertThat(done.await(30, TimeUnit.SECONDS)).isTrue();
 
         int success = 0;
         int failedLimit = 0;
@@ -109,26 +111,28 @@ class ExtensionServiceConcurrencyTest {
 
         int attempts = 10;
         ExecutorService pool = Executors.newFixedThreadPool(10);
-        CountDownLatch ready = new CountDownLatch(attempts);
         CountDownLatch start = new CountDownLatch(1);
+        CountDownLatch done = new CountDownLatch(attempts);
 
         List<Future<Boolean>> futures = new ArrayList<>();
         for (int i = 0; i < attempts; i++) {
             final String ext = String.format("race%03d", i);
             futures.add(pool.submit(() -> {
-                ready.countDown();
-                start.await(10, TimeUnit.SECONDS);
                 try {
+                    start.await(10, TimeUnit.SECONDS);
                     extensionService.createCustomExtension(ext);
                     return true;
                 } catch (CustomExtensionLimitExceededException e) {
                     return false;
+                } finally {
+                    done.countDown();
                 }
             }));
         }
 
-        assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
         start.countDown();
+
+        assertThat(done.await(30, TimeUnit.SECONDS)).isTrue();
 
         int success = 0;
         int failedLimit = 0;
