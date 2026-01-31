@@ -76,7 +76,6 @@ public class ExtensionService {
     public CustomExtensionResponse createCustomExtension(String extension) {
         String normalized = normalizeExtension(extension);
 
-        // Lock sentinel row so (count + insert) is concurrency-safe.
         LocalDateTime now = LocalDateTime.now();
         lockCustomExtensionsTable(now);
 
@@ -141,13 +140,13 @@ public class ExtensionService {
                         try {
                             customExtensionBlockRepository.save(CustomExtensionBlock.of(CUSTOM_LOCK_EXTENSION, now));
                         } catch (DataIntegrityViolationException ignored) {
-                            // Another transaction created the sentinel.
+
                         }
                         return customExtensionBlockRepository.findByExtensionForUpdate(CUSTOM_LOCK_EXTENSION)
                                 .orElseThrow(() -> new IllegalStateException("Custom extension lock row missing"));
                     });
         } catch (DataIntegrityViolationException ignored) {
-            // Rare race; retry lock lookup.
+
             customExtensionBlockRepository.findByExtensionForUpdate(CUSTOM_LOCK_EXTENSION)
                     .orElseThrow(() -> new IllegalStateException("Custom extension lock row missing"));
         }
