@@ -16,8 +16,17 @@ const els = {
 function normalizeExtension(raw) {
   if (raw == null) return "";
   let v = String(raw).trim();
+
+  const lastDot = v.lastIndexOf(".");
+  if (lastDot >= 0) {
+    if (lastDot === v.length - 1) return "";
+    v = v.slice(lastDot + 1);
+  }
+
   if (v.startsWith(".")) v = v.slice(1);
-  return v.toLowerCase();
+  v = v.trim().toLowerCase();
+  if (!v || v.includes(".")) return "";
+  return v;
 }
 
 function setStatus(message, tone = "muted") {
