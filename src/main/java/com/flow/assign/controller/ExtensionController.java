@@ -61,6 +61,36 @@ public class ExtensionController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/custom")
+    public ResponseEntity<CustomExtensionResponse> customExtensionCreate(
+            @Valid @RequestBody CustomCreateRequest request
+    ) {
+        CustomExtensionResponse response = extensionService.createCustomExtension(request.getExtension());
+        return ResponseEntity.status(201).body(response);
+    }
 
+    @GetMapping("/custom/{extension}")
+    public ResponseEntity<CustomExtensionResponse> customExtensionGet(@PathVariable String extension) {
+        return ResponseEntity.ok(extensionService.getCustomExtension(extension));
+    }
+
+    @GetMapping("/custom")
+    public ResponseEntity<List<CustomExtensionResponse>> customExtensionList() {
+        return ResponseEntity.ok(extensionService.listCustomExtensions());
+    }
+
+    @PutMapping("/custom/{extension}")
+    public ResponseEntity<CustomExtensionResponse> customExtensionUpdate(
+            @PathVariable String extension,
+            @Valid @RequestBody CustomUpdateRequest request
+    ) {
+        return ResponseEntity.ok(extensionService.updateCustomExtension(extension, request.getNewExtension()));
+    }
+
+    @DeleteMapping("/custom/{extension}")
+    public ResponseEntity<Void> customExtensionDelete(@PathVariable String extension) {
+        extensionService.deleteCustomExtension(extension);
+        return ResponseEntity.noContent().build();
+    }
 
 }

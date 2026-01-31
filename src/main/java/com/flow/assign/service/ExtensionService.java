@@ -23,9 +23,11 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ExtensionService {
 
+    private static final int CUSTOM_EXTENSION_MAX = 200;
     private static final String CUSTOM_LOCK_EXTENSION = "__lock__";
 
     private final FixedExtensionPolicyRepository fixedExtensionPolicyRepository;
+    private final CustomExtensionBlockRepository customExtensionBlockRepository;
 
     @Transactional
     public FixedExtensionResponse createFixedExtension(String extension) {
@@ -70,6 +72,86 @@ public class ExtensionService {
         fixedExtensionPolicyRepository.deleteById(normalized);
     }
 
+    @Transactional
+    public CustomExtensionResponse createCustomExtension(String extension) {
+        String normalized = normalizeExtension(extension);
+
+        // Lock sentinel row so (count + insert) is concurrency-safe.
+        LocalDateTime now = LocalDateTime.now();
+        lockCustomExtensionsTable(now);
+
+        long currentCount = customExtensionBlockRepository.countByExtensionNot(CUSTOM_LOCK_EXTENSION);
+        if (currentCount >= CUSTOM_EXTENSION_MAX) {
+            throw CustomExtensionLimitExceededException.max(CUSTOM_EXTENSION_MAX);
+        }
+
+        if (customExtensionBlockRepository.existsByExtension(normalized)) {
+            throw ExtensionAlreadyExistsException.custom(normalized);
+        }
+
+        CustomExtensionBlock saved = customExtensionBlockRepository.save(CustomExtensionBlock.of(normalized, now));
+        return CustomExtensionResponse.from(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public CustomExtensionResponse getCustomExtension(String extension) {
+        String normalized = normalizeExtension(extension);
+        CustomExtensionBlock block = customExtensionBlockRepository.findByExtension(normalized)
+                .orElseThrow(() -> ExtensionNotFoundException.custom(normalized));
+        return CustomExtensionResponse.from(block);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CustomExtensionResponse> listCustomExtensions() {
+        return customExtensionBlockRepository.findAllByExtensionNot(CUSTOM_LOCK_EXTENSION).stream()
+                .map(CustomExtensionResponse::from)
+                .toList();
+    }
+
+    @Transactional
+    public CustomExtensionResponse updateCustomExtension(String currentExtension, String newExtension) {
+        String current = normalizeExtension(currentExtension);
+        String next = normalizeExtension(newExtension);
+
+        CustomExtensionBlock block = customExtensionBlockRepository.findByExtension(current)
+                .orElseThrow(() -> ExtensionNotFoundException.custom(current));
+
+        if (!current.equals(next) && customExtensionBlockRepository.existsByExtension(next)) {
+            throw ExtensionAlreadyExistsException.custom(next);
+        }
+
+        block.changeExtension(next);
+        return CustomExtensionResponse.from(block);
+    }
+
+    @Transactional
+    public void deleteCustomExtension(String extension) {
+        String normalized = normalizeExtension(extension);
+        Optional<CustomExtensionBlock> existing = customExtensionBlockRepository.findByExtension(normalized);
+        if (existing.isEmpty()) {
+            throw ExtensionNotFoundException.custom(normalized);
+        }
+        customExtensionBlockRepository.delete(existing.get());
+    }
+
+    private void lockCustomExtensionsTable(LocalDateTime now) {
+        try {
+            customExtensionBlockRepository.findByExtensionForUpdate(CUSTOM_LOCK_EXTENSION)
+                    .orElseGet(() -> {
+                        try {
+                            customExtensionBlockRepository.save(CustomExtensionBlock.of(CUSTOM_LOCK_EXTENSION, now));
+                        } catch (DataIntegrityViolationException ignored) {
+                            // Another transaction created the sentinel.
+                        }
+                        return customExtensionBlockRepository.findByExtensionForUpdate(CUSTOM_LOCK_EXTENSION)
+                                .orElseThrow(() -> new IllegalStateException("Custom extension lock row missing"));
+                    });
+        } catch (DataIntegrityViolationException ignored) {
+            // Rare race; retry lock lookup.
+            customExtensionBlockRepository.findByExtensionForUpdate(CUSTOM_LOCK_EXTENSION)
+                    .orElseThrow(() -> new IllegalStateException("Custom extension lock row missing"));
+        }
+    }
 
     private String normalizeExtension(String extension) {
         if (extension == null) {
